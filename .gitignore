@@ -1,0 +1,32 @@
+*.iml
+.kotlin
+.gradle
+**/build/
+# Gradle's local build-cache marker directory created at the project root.
+.build/
+xcuserdata
+!src/**/build/
+local.properties
+.idea
+.DS_Store
+captures
+.externalNativeBuild
+.cxx
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+**/xcshareddata/WorkspaceSettings.xcsettings
+node_modules/
+
+# Local, sandbox-friendly Gradle/Kotlin/Native/Swift homes used when `$HOME`
+# is not writable. They are caches, never build inputs.
+.gradle-home/
+.konan-home/
+.swift-module-cache/
+.android-home/
+
+# Local Maven staging produced by
+# `:recipes:publishAllPublicationsToLocalTestRepository`.
+recipes/build/local-maven/

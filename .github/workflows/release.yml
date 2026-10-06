@@ -1,0 +1,132 @@
+name: Release
+
+# Publishes, for the pushed tag `vX.Y.Z`:
+#   1. Maven artifacts for every Kotlin target to GitHub Packages
+#   2. SharedRecipes.xcframework.zip as a GitHub release asset
+#   3. a Package.swift whose checksum matches that asset, on the `spm` branch
+#
+# Consumers then use:
+#   Android/KMP:  maven("https://maven.pkg.github.com/<owner>/<repo>")
+#                 implementation("com.github.<owner>:recipes:X.Y.Z")
+#   iOS:          https://github.com/<owner>/<repo>.git (branch: spm)
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to publish, for example 1.0.0
+        required: true
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  publish:
+    name: Publish ${{ github.ref_name }}
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Releasing $VERSION"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      # ------------------------------------------------------------------
+      # Android + KMP artifacts -> GitHub Packages
+      # ------------------------------------------------------------------
+      - name: Publish Maven publications
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: |
+          ./gradlew :recipes:publishAllPublicationsToGitHubPackagesRepository \
+            -Precipes.group="com.github.${{ github.repository_owner }}" \
+            -Precipes.version="${{ steps.version.outputs.version }}" \
+            --console=plain
+
+      # ------------------------------------------------------------------
+      # iOS XCFramework -> GitHub release asset + SPM manifest
+      # ------------------------------------------------------------------
+      - name: Build XCFramework and render Package.swift
+        run: |
+          chmod +x scripts/build-xcframework.sh
+          scripts/build-xcframework.sh "${{ steps.version.outputs.version }}" "${{ github.repository }}"
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release create "v${{ steps.version.outputs.version }}" \
+            build/spm/SharedRecipes.xcframework.zip \
+            --title "v${{ steps.version.outputs.version }}" \
+            --generate-notes
+
+      - name: Publish SPM manifest to the spm branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # `spm` is a standalone branch: it only carries the package manifest,
+          # the Swift wrapper and a short README.
+          if git ls-remote --exit-code --heads origin spm >/dev/null 2>&1; then
+            git fetch origin spm
+            git checkout -B spm FETCH_HEAD
+          else
+            git checkout --orphan spm
+            git rm -rf --cached . >/dev/null
+          fi
+
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp build/spm/Package.swift Package.swift
+          mkdir -p Sources/SharedRecipesSwift
+          cp "$GITHUB_WORKSPACE/spm/Sources/SharedRecipesSwift/RecipesSwift.swift" \
+             Sources/SharedRecipesSwift/RecipesSwift.swift
+
+          cat > README.md <<'EOF'
+          # SharedRecipes (Swift Package Manager)
+
+          This branch hosts the SPM manifest for the `recipes` Kotlin Multiplatform
+          module. Add it in Xcode with **File ▸ Add Package Dependencies** and the
+          repository URL, or in `Package.swift`:
+
+          ```swift
+          .package(url: "https://github.com/OWNER/REPO.git", branch: "spm")
+          ```
+
+          The binary target points at the `SharedRecipes.xcframework.zip` asset of the
+          matching GitHub release. See the repository README for usage.
+          EOF
+
+          git add -A
+          git commit -m "SPM manifest for v${{ steps.version.outputs.version }}"
+          git push origin HEAD:refs/heads/spm

@@ -1,0 +1,36 @@
+// swift-tools-version:5.9
+//
+// TEMPLATE. `scripts/generate-spm-package.sh` (used by the release workflow)
+// replaces __VERSION__, __OWNER__, __REPO__ and __CHECKSUM__ and writes the
+// result to Package.swift.
+//
+// Consumers add the package in Xcode:
+//   File ▸ Add Package Dependencies ▸ Enter package URL ▸ <repo url>
+//
+import PackageDescription
+
+let package = Package(
+    name: "SharedRecipes",
+    platforms: [
+        // The XCFramework is built for arm64 device and arm64 simulator.
+        .iOS(.v15),
+    ],
+    products: [
+        // Idiomatic Swift async/await API.
+        .library(name: "SharedRecipesSwift", targets: ["SharedRecipesSwift"]),
+        // Raw Kotlin framework, completion-handler based API.
+        .library(name: "SharedRecipes", targets: ["SharedRecipes"]),
+    ],
+    targets: [
+        .binaryTarget(
+            name: "SharedRecipes",
+            url: "https://github.com/__OWNER__/__REPO__/releases/download/v__VERSION__/SharedRecipes.xcframework.zip",
+            checksum: "__CHECKSUM__"
+        ),
+        .target(
+            name: "SharedRecipesSwift",
+            dependencies: ["SharedRecipes"],
+            path: "Sources/SharedRecipesSwift"
+        ),
+    ]
+)
