@@ -43,7 +43,7 @@ repository.getRecipesByMealType("snack")
 repository.getRecipes(RecipesQuery.build {
     limit = 20
     sortByDescending(RecipeSortField.Rating)
-    select = listOf(RecipeSelectField.Name, RecipeSelectField.Image)
+    setSelect(listOf(RecipeSelectField.Name, RecipeSelectField.Image))
 })
 ```
 

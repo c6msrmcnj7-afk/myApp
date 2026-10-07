@@ -86,6 +86,27 @@ public class RecipesRepository internal constructor(
     public suspend fun getTags(): RecipesResult<List<String>> = execute { api.getTags() }
 
     /**
+     * Returns every distinct meal type used by the dataset, sorted
+     * alphabetically, for example `["Breakfast", "Dinner", "Lunch", "Snack"]`.
+     *
+     * The API has no dedicated endpoint for this, so the whole dataset is
+     * paged through once and the values are collected client side.
+     */
+    public suspend fun getMealTypes(maxRecipes: Int = 1_000): RecipesResult<List<String>> =
+        when (val result = getAllRecipes(maxRecipes = maxRecipes)) {
+            is RecipesResult.Success -> RecipesResult.Success(
+                result.value
+                    .flatMap { it.mealType }
+                    .map { it.trim() }
+                    .filter { it.isNotEmpty() }
+                    .distinctBy { it.lowercase() }
+                    .sorted(),
+            )
+
+            is RecipesResult.Failure -> RecipesResult.Failure(result.failure)
+        }
+
+    /**
      * Returns the page of recipes matching [difficulty], filtered on the client
      * because the API does not expose a difficulty endpoint.
      *

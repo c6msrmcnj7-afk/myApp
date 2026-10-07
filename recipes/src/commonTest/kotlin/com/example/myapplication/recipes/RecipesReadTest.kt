@@ -208,7 +208,7 @@ internal class RecipesReadTest : RecipesTestBase() {
             RecipesQuery.build {
                 limit = 10
                 sortByDescending(RecipeSortField.Rating)
-                select = listOf(RecipeSelectField.Name, RecipeSelectField.Image)
+                setSelect(listOf(RecipeSelectField.Name, RecipeSelectField.Image))
             },
         ).value()
 

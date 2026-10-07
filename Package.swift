@@ -1,11 +1,15 @@
 // swift-tools-version:5.9
 //
-// TEMPLATE. `scripts/build-xcframework.sh` (used by the release workflow)
-// replaces __VERSION__, __OWNER__, __REPO__ and __CHECKSUM__ and writes the
-// result to Package.swift.
+// LOCAL DEVELOPMENT manifest.
 //
-// Consumers add the package in Xcode:
-//   File ▸ Add Package Dependencies ▸ Enter package URL ▸ <repo url>
+// It points the binary target at the XCFramework that
+// `scripts/build-xcframework.sh` produces, so an Xcode project can consume this
+// checkout directly with `.package(path: "…")`.
+//
+// The version published for consumers is rendered from
+// `spm/Package.swift.template` onto the `spm` branch by the release workflow;
+// there the binary target is a download URL plus checksum instead of a local
+// path. Keep the two manifests in sync when the target layout changes.
 //
 import PackageDescription
 
@@ -24,13 +28,12 @@ let package = Package(
     targets: [
         .binaryTarget(
             name: "SharedRecipes",
-            url: "https://github.com/__OWNER__/__REPO__/releases/download/v__VERSION__/SharedRecipes.xcframework.zip",
-            checksum: "__CHECKSUM__"
+            path: "build/spm/SharedRecipes.xcframework"
         ),
         .target(
             name: "SharedRecipesSwift",
             dependencies: ["SharedRecipes"],
-            path: "Sources/SharedRecipesSwift"
+            path: "spm/Sources/SharedRecipesSwift"
         ),
     ]
 )

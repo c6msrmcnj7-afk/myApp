@@ -195,6 +195,22 @@ The package exposes two products:
 | `SharedRecipesSwift` | Swift `async`/`await` wrappers around the Kotlin API (recommended) |
 | `SharedRecipes` | the raw Kotlin framework with completion handlers |
 
+### Reference app
+
+[`iosAppSPM`](./iosAppSPM) is a working SwiftUI app that consumes the library
+through SPM exactly as an external project would, and
+[`iosApp`](./iosApp) is the Kotlin-plugin based app from the KMP template. Build
+the reference app with:
+
+```shell
+scripts/build-xcframework.sh 0.1.0 <owner>/<repo>   # produce the local XCFramework
+open iosAppSPM/RecipesExplorer.xcodeproj
+```
+
+It ships XCUITest smoke tests that drive the live API, so it doubles as an
+end-to-end check of the published Swift surface. See
+[iosAppSPM/README.md](./iosAppSPM/README.md).
+
 ```swift
 import SharedRecipesSwift
 import SharedRecipes

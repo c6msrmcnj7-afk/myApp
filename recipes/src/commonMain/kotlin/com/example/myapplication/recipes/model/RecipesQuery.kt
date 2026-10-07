@@ -10,9 +10,8 @@ import com.example.myapplication.recipes.RecipesApi
  * val query = RecipesQuery.build {
  *     limit = 10
  *     skip = 20
- *     sortBy = RecipeSortField.Rating
- *     order = RecipeSortOrder.Descending
- *     select = listOf(RecipeSelectField.Name, RecipeSelectField.Image)
+ *     sortByDescending(RecipeSortField.Rating)
+ *     setSelect(listOf(RecipeSelectField.Name, RecipeSelectField.Image))
  * }
  * ```
  */
@@ -59,30 +58,58 @@ public data class RecipesQuery(
 
     /** Mutable builder backing [RecipesQuery.build]. */
     public class Builder internal constructor() {
+        /** Maximum number of recipes to return. `0` asks the API for all of them. */
         public var limit: Int = RecipesApi.DefaultLimit
+
+        /** Number of recipes to skip, used for pagination. */
         public var skip: Int = 0
-        public var sortBy: String? = null
-        public var order: String? = null
-        public var select: List<String> = emptyList()
+
+        private var sortByField: String? = null
+        private var orderField: String? = null
+        private var selectFields: List<String> = emptyList()
+
+        /** Field to sort by, see [com.example.myapplication.recipes.RecipeSortField]. */
+        public fun getSortBy(): String? = sortByField
+
+        /** Sets the field to sort by. */
+        public fun setSortBy(value: String?) {
+            sortByField = value
+        }
+
+        /** Sort direction, see [com.example.myapplication.recipes.RecipeSortOrder]. */
+        public fun getOrder(): String? = orderField
+
+        /** Sets the sort direction. */
+        public fun setOrder(value: String?) {
+            orderField = value
+        }
+
+        /** Field names to project, see [com.example.myapplication.recipes.RecipeSelectField]. */
+        public fun getSelect(): List<String> = selectFields
+
+        /** Sets the field names to project. */
+        public fun setSelect(value: List<String>) {
+            selectFields = value
+        }
 
         /** Sorts the result set in ascending order by [field]. */
         public fun sortByAscending(field: String) {
-            sortBy = field
-            order = RecipeSortOrder.Ascending
+            sortByField = field
+            orderField = RecipeSortOrder.Ascending
         }
 
         /** Sorts the result set in descending order by [field]. */
         public fun sortByDescending(field: String) {
-            sortBy = field
-            order = RecipeSortOrder.Descending
+            sortByField = field
+            orderField = RecipeSortOrder.Descending
         }
 
         internal fun toQuery(): RecipesQuery = RecipesQuery(
             limit = limit,
             skip = skip,
-            sortBy = sortBy,
-            order = order,
-            select = select,
+            sortBy = sortByField,
+            order = orderField,
+            select = selectFields,
         )
     }
 }
